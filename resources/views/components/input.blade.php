@@ -92,3 +92,71 @@
 </div>
 <x-fgx::info :id="$id" :info="$info" />
 <x-fgx::error :id="$id" />
+@if ($type == 'tel')
+    @if (isset($__livewire))
+        @assets
+            <script src="{{ asset('assets/lib/intl-tel-input/build/js/intlTelInput.min.js') }}"></script>
+            <link rel="stylesheet" href="{{ asset('assets/lib/intl-tel-input/build/css/intlTelInput.min.css') }}">
+        @endassets
+        @script
+            <script>
+                const input = $wire.$el.querySelector('#{{ $id }}');
+                console.log('input', input);
+                const container = input.parentNode;
+                console.log('container', container);
+                let modelAttribute = null;
+                if (typeof input.getAttribute('wire:model') !== 'undefined') {
+                    modelAttribute = 'wire:model';
+                }
+                if (typeof input.getAttribute('wire:model.live') !== 'undefined') {
+                    modelAttribute = 'wire:model.live';
+                }
+                console.log('modelAttribute', modelAttribute);
+                const model = input.getAttribute('wire:model.live') ?? input.getAttribute('wire:model');
+                console.log('model', model);
+                const isLivewire = typeof model !== 'undefined' && typeof $wire !== 'undefined';
+                console.log('isLivewire', isLivewire);
+                input.removeAttribute('wire:model');
+                input.removeAttribute('wire:model.live');
+                const name = input.getAttribute('name') ?? '{{ $model }}' ?? input.id;
+                console.log('name', name);
+                input.name = `iti-${name}`;
+                const iti = window.intlTelInput(input, {
+                    loadUtils: () => import("{{ asset('assets/lib/intl-tel-input/build/js/utils.js') }}"),
+                    initialCountry: "auto",
+                    geoIpLookup: (success, failure) => {
+                        const country_code = localStorage.getItem('country_code', false);
+                        if (country_code) {
+                            success(country_code);
+                        } else {
+                            fetch("https://ipapi.co/json")
+                                .then((res) => res.json())
+                                .then((data) => {
+                                    localStorage.setItem('country_code', data.country_code);
+                                    success(data.country_code)
+                                })
+                                .catch(() => failure());
+                        }
+
+                    },
+                    nationalMode: true,
+                    strictMode: true,
+                    separateDialCode: true,
+                    hiddenInput: () => ({
+                        phone: name,
+                    }),
+                });
+                //const hiddenInput = container.querySelector(`input[name="${name}"]`);
+                //hiddenInput.setAttribute(modelAttribute, model);
+                //console.log('hiddenInput', hiddenInput);
+            </script>
+        @endscript
+    @else
+        @pushOnce('styles')
+            <link rel="stylesheet" href="{{ asset('assets/lib/intl-tel-input/build/css/intlTelInput.min.css') }}">
+        @endPushOnce
+        @pushOnce('scripts')
+            <link rel="stylesheet" href="{{ asset('assets/lib/intl-tel-input/build/js/intlTelInput.min.js') }}">
+        @endPushOnce
+    @endif
+@endif

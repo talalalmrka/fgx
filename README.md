@@ -34,6 +34,14 @@ You can customize the components by publishing the views:
 php artisan vendor:publish --tag=fgx-views
 ```
 
+### Updating caches
+
+```bash
+php artisan config:clear
+php artisan config:cache
+php artisan view:clear
+```
+
 ### Available Components
 
 - `fgx-button`

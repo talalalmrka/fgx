@@ -59,9 +59,6 @@ class FgxServiceProvider extends ServiceProvider
         Blade::directive('pre', function ($data, $class = '') {
             return "<?php pre($data, $class); ?>";
         });
-        Blade::directive('isLivewire', function () {
-            return "<?php is_livewire(); ?>";
-        });
     }
 
     protected function registerPublishes()
