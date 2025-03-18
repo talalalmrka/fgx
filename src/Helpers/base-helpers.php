@@ -56,3 +56,10 @@ if (!function_exists('pre')) {
         echo "</pre>";
     }
 }
+
+if (!function_exists('is_livewire')) {
+    function is_livewire()
+    {
+        return request()->header('X-Livewire') ? true : false;
+    }
+}

@@ -32,7 +32,7 @@ class FgxServiceProvider extends ServiceProvider
         $componentPath = __DIR__ . '/../../resources/views/components';
         Blade::componentNamespace('Fgx\\Components', 'fgx');
         Blade::anonymousComponentPath($componentPath, 'fgx');
-        Blade::component("fgx::components.button", "fgx-button");
+        //Blade::component("fgx::components.button", "fgx-button");
         /*if (!File::exists($componentPath)) {
             return;
         }
@@ -58,6 +58,9 @@ class FgxServiceProvider extends ServiceProvider
         });
         Blade::directive('pre', function ($data, $class = '') {
             return "<?php pre($data, $class); ?>";
+        });
+        Blade::directive('isLivewire', function () {
+            return "<?php is_livewire(); ?>";
         });
     }
 

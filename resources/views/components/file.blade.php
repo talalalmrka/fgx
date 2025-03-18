@@ -18,9 +18,7 @@
     $multiple = $multiple || $attributes->has('multiple');
     $hasPreviews = is_array($previews) && sizeof($previews) > 0;
 @endphp
-<x-form.label for="{{ $id }}" :icon="$icon" :required="$required" :error="$error">
-    {!! $label ?? $slot !!}
-</x-form.label>
+<x-fgx::label for="{{ $id }}" :icon="$icon" :required="$required" :error="$error" :label="$label" />
 <!-- Drop Zone -->
 <div x-cloak x-data="fileDropZone" x-on:livewire-upload-start="uploadStart()" x-on:livewire-upload-finish="uploadFinish"
     x-on:livewire-upload-cancel="uploadCancel()" x-on:livewire-upload-error="uploadError()"
@@ -104,8 +102,8 @@
     ) !!} {{ $multiple ? 'multiple' : '' }} />
 </div>
 
-<x-form.error :id="$id" />
-<x-form.info :id="$id" :info="$info" />
+<x-fgx::error :id="$id" />
+<x-fgx::info :id="$id" :info="$info" />
 @script
     <script>
         Alpine.data('fileDropZone', () => ({

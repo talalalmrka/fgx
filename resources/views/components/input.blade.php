@@ -21,11 +21,15 @@
     'container_atts' => [],
 ])
 @php
+    $model = $attributes->get('wire:model.live') ?? $attributes->get('wire:model');
+    $type = $type ?? $attributes->get('type');
     if ($type === 'password') {
         $container_atts['x-data'] =
             "{type: 'password', toggle(){this.type = this.type == 'password' ? 'text' : 'password'}}";
         $container_atts['x-cloak'] = '';
-        $atts[':type'] = 'type';
+        $atts[':type'] = $type;
+    } elseif ($type === 'tel') {
+        $container_atts['wire:ignore'] = '';
     }
 @endphp
 <x-fgx::label :for="$id" :icon="$icon" :required="$required" :label="$label" />
@@ -66,6 +70,7 @@
             ]),
         ]),
     ) !!}>
+
     @if ($endIcon || $endView || $type == 'password')
         <span class="end-icon">
             @icon($endIcon)

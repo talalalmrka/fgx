@@ -13,71 +13,53 @@
     'info' => null,
     'size' => 'normal',
     'rows' => 5,
-    'atts' => [],
-    'required' => false,
     'class' => null,
-    //'joditId' => uniqid('jodit-'),
+    'atts' => [],
 ])
 @php
-    $joditId = "jodit-$id";
+    $error ??= $errors->has($id);
 @endphp
-<x-form.label for="{{ $joditId }}" :icon="$icon" :required="$required" :error="$errors->has($id)">
-    {!! $label ?? $slot !!}
-</x-form.label>
+
+<x-fgx::label :for="$id" :icon="$icon" :required="$required" :error="$error" :label="$label" />
 <div wire:ignore>
-    <textarea x-data="jodit" {!! $attributes->merge(
+    <textarea {!! $attributes->merge(
         array_merge($atts, [
-            'id' => $joditId,
+            'id' => $id,
             'rows' => $rows,
             'placeholder' => $placeholder,
             'autofocus' => $autofocus ? '' : null,
             'required' => $required ? '' : null,
             'disabled' => $disabled ? '' : null,
-            'aria-describedby' => $info ? $id . '-help' : null,
-            'class' => css_classes([
-                'form-control',
-                'error' => $errors->has($id) || $errors->has("$id.*"),
-                $class => $class,
-            ]),
+            'aria-describedby' => $info ? "$id-help" : null,
+            'class' => css_classes(['form-control', 'error' => $error, $class => $class]),
         ]),
     ) !!}>{{ $value }}</textarea>
 </div>
-<x-form.info :id="$id" :info="$info" />
-<x-form.error :id="$id" />
-@pushOnce('styles')
-    <link rel="stylesheet" href="//unpkg.com/jodit@4.1.16/es2021/jodit.min.css">
-@endPushOnce
-@pushOnce('scripts')
+<x-fgx::info :id="$id" :info="$info" />
+<x-fgx::error :id="$id" />
+
+@assets
     <script src="//unpkg.com/jodit@4.1.16/es2021/jodit.min.js"></script>
-@endPushOnce
+    <link rel="stylesheet" href="//unpkg.com/jodit@4.1.16/es2021/jodit.min.css">
+@endassets
 @script
     <script>
-        Alpine.data('jodit', () => ({
-            init() {
-                this.$nextTick(() => {
-                    console.log('jodit');
-                    const editor = Jodit.make('#' + @js($joditId), {
-                        "autofocus": true,
-                        "toolbarSticky": true,
-                        "uploader": {
-                            "insertImageAsBase64URI": true
-                        },
-                        "toolbarButtonSize": "xsmall",
-                        "showCharsCounter": false,
-                        "showWordsCounter": false,
-                        "showXPathInStatusbar": false,
-                        "defaultActionOnPaste": "insert_clear_html",
-                        //"buttons": buttons
-                    });
-                    document.getElementById(@js($joditId)).addEventListener('change', function() {
-                        @this.set(@js($id), this.value);
-                    });
-
-                    window.addEventListener('update-jodit-content', (event) => {
-                        editor.value = event.detail[0];
-                    });
-                });
+        const textarea = $wire.$el.querySelector('#{{ $id }}');
+        const editor = Jodit.make(textarea, {
+            "autofocus": true,
+            "toolbarSticky": true,
+            "uploader": {
+                "insertImageAsBase64URI": true
             },
-        }));
+            "toolbarButtonSize": "xsmall",
+            "showCharsCounter": false,
+            "showWordsCounter": false,
+            "showXPathInStatusbar": false,
+            "defaultActionOnPaste": "insert_clear_html",
+            "height": textarea.dataset.height ?? 400,
+        });
+        textarea.addEventListener('change', function() {
+            $wire.set('{{ $id }}', this.value);
+        });
     </script>
 @endscript

@@ -40,22 +40,17 @@ php artisan vendor:publish --tag=fgx-views
 - `fgx-input`
 - `fgx-select`
 - `fgx-checkbox`
-- `fgx-radio-group`
+- `fgx-radio`
 - `fgx-switch`
 - `fgx-textarea`
 - `fgx-file`
 - `fgx-editor`
-- `fgx-location`
-- `fgx-dropzone`
 - `fgx-loader`
 - `fgx-label`
 - `fgx-info`
 - `fgx-error`
 - `fgx-success`
 - `fgx-status`
-- `fgx-fields`
-- `fgx-field`
-- `fgx-select-choice`
 - `fgx-switch-group`
 - `fgx-check-group`
 
