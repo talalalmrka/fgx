@@ -9,7 +9,7 @@
         "components",
         "ui"
     ],
-    "version": "0.0.2",
+    "version": "1.0.0",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -22,6 +22,7 @@
         "php": "^8.1",
         "illuminate/console": "^10.0|^11.0|^12.0",
         "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/contracts": "^10.0|^11.0|^12.0",
         "illuminate/view": "^10.0|^11.0|^12.0",
         "symfony/console": "^6.0|^7.0",
         "livewire/livewire": "^3.5.19",
@@ -43,6 +44,6 @@
             ]
         }
     },
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "prefer-stable": true
 }

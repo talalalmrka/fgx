@@ -5,7 +5,7 @@
     'icon' => null,
     'label' => null,
     'media' => null,
-    'previews' => [],
+    'previews' => null,
     'multiple' => false,
     'required' => false,
     'error' => null,
@@ -16,15 +16,16 @@
 ])
 @php
     $multiple = $multiple || $attributes->has('multiple');
-    $hasPreviews = is_array($previews) && sizeof($previews) > 0;
+    if(!$multiple && !empty($previews)){
+        $media = collect([$previews->last()]);
+    }
+    $hasPreviews = !empty($previews) && $previews->isNotEmpty();
 @endphp
 <x-fgx::label for="{{ $id }}" :icon="$icon" :required="$required" :error="$error" :label="$label" />
-<!-- Drop Zone -->
 <div x-cloak x-data="fileDropZone" x-on:livewire-upload-start="uploadStart()" x-on:livewire-upload-finish="uploadFinish"
     x-on:livewire-upload-cancel="uploadCancel()" x-on:livewire-upload-error="uploadError()"
     x-on:livewire-upload-progress="uploadProgress($event)"
-    class="relative overflow-hidden border-2 border-gray-300 border-dashed rounded-lg cursor-pointerr bg-gray-50 dark:bg-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-700"
-    :class="{ 'w-36 h-36': @js(!$multiple) }">
+    class="media-drop-zone {{ $multiple ? 'multiple': '' }}">
     @if (!$hasPreviews)
         <label for="{{ $id }}" class="flex items-center justify-center w-full h-full cursor-pointer flex-coll">
             <div class="flex flex-col items-center justify-center p-4">
@@ -40,34 +41,23 @@
     @endif
     <!-- Previews -->
     @if ($hasPreviews)
-        <div :class="{ 'flex flex-wrap p-4 gap-4': @js($multiple), 'w-full h-full': @js(!$multiple) }"
-            class="relative group/items">
-            <!-- Saved Previews -->
-            @php
-                $i = 0;
-            @endphp
-            @foreach ($previews as $preview)
-                @php
-                    $itemId = data_get($preview, 'id');
-                @endphp
-                @include(
-                    'components.media-item-preview',
-                    array_merge($preview, [
-                        'onClickDelete' => !empty($itemId) ? "deleteItem($itemId)" : "deletePreview($i)",
-                        'class' => css_classes(['w-full h-full' => !$multiple, 'w-32 h-32' => $multiple]),
-                    ]))
-                @php
-                    $i++;
-                @endphp
+        <div class="media-previews-container {{ $multiple ? 'multiple' : '' }}">
+            @foreach ($previews as $index => $preview)
+                <div class="media-previews-item">
+                    <fgx:media-preview :preview="$preview"
+                        wire:key="{{ $index }}" />
+                    <button type="button" x-on:click="$dispatch('delete-media', {property: '{{ $id }}', index: {{ $index }}})" title="{{ __('Delete') }}"
+                        class="media-item-delete">
+                        @icon('bi-trash')
+                    </button>
+                </div>
             @endforeach
-            <!-- Change For Single -->
             @if (!$multiple)
-                <label for="{{ $id }}"
-                    class="absolute inset-0 items-center justify-center hidden w-8 h-8 m-auto text-white transition-opacity bg-blue-500 rounded-full shadow cursor-pointer group-hover/items:flex bg-opacity-85 hover:bg-opacity-95">
-                    @icon('fas-edit', 'w-4 h-4')
-                </label>
+                <button type="button" x-on:click="$refs.fileInput.click()"
+                    class="media-item-edit">
+                    @icon('bi-pencil-square', 'w-4 h-4')
+                </button>
             @endif
-            <!-- Appender For Multiple -->
             @if ($multiple && $hasPreviews)
                 <label for="{{ $id }}"
                     class="relative flex flex-col items-center justify-center w-32 h-32 p-3 text-gray-400 bg-gray-100 border border-gray-200 rounded-lg shadow-xs cursor-pointer group hover:shadow-sm dark:text-gray-400 dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 dark:border-gray-700">
@@ -79,7 +69,6 @@
             @endif
         </div>
     @endif
-    <!-- Progress -->
     <template x-if="uploading">
         <div class="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
             <div class="w-full px-3">
@@ -90,7 +79,6 @@
             </div>
         </div>
     </template>
-    <!-- Input -->
     <input x-ref="fileInput" {!! $attributes->merge(
         array_merge($atts, [
             'class' => 'hidden',
