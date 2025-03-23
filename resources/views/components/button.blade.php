@@ -21,6 +21,7 @@
         'sky' => 'btn-sky',
         'emerald' => 'btn-emerald',
     ];
+    $label = isset($slot) && $slot->isNotEmpty() ? $slot : $label;
 @endphp
 <button
     {{ $attributes->merge(
@@ -28,7 +29,7 @@
             [
                 'type' => $type,
                 'class' => css_classes([
-                    'btn flex-space-2',
+                    'btn',
                     data_get($variants, $variant) => $variant,
                     $size => $size,
                     $class => $class,
@@ -36,9 +37,10 @@
             ],
             $atts,
         ),
-    ) }}
-    class="btn btn-primary">
+    ) }}>
     @icon($startIcon)
-    <span>{!! $slot ?? $label !!}</span>
+    @if (!empty($label))
+        <span>{!! $label !!}</span>
+    @endif
     @icon($endIcon)
 </button>
