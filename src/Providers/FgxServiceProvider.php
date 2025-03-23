@@ -52,7 +52,6 @@ class FgxServiceProvider extends ServiceProvider
         Blade::directive('icon', function ($class = null) {
             return "<?php icon($class);?>";
         });
-
         Blade::directive('content', function ($expression) {
             return "<?php content($expression); ?>";
         });

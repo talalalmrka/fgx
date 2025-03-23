@@ -1,15 +1,14 @@
 @props([
-    'id' => '',
-    'icon' => 'fas-save',
+    'icon' => 'bi-save',
     'label' => __('Save'),
-    'buttonClass' => 'primary sm pill',
+    'buttonClass' => 'btn-primary',
     'target' => 'save',
 ])
-<x-card-footer class="flex items-center justify-between">
+<x-fgx::card-footer class="flex items-center justify-between">
     <div class="flex items-center">
-        <x-loader wire:loading wire:target="{{ $target }}" size="4" />
-        <x-status wire:loading.remove wire:target="{{ $target }}" id="{{ $id }}" class="mb-0 p-0" />
+        <x-fgx::loader wire:loading wire:target="{{ $target }}" size="4" />
+        <x-fgx::status wire:loading.remove wire:target="{{ $target }}" id="{{ $id }}" class="mb-0 p-0" />
     </div>
-    <x-button type="submit" class="flex items-center {{ $buttonClass }}" startIcon="{{ $icon }}"
+    <x-fgx::button type="submit" class="btn sm pill {{ $buttonClass }}" startIcon="{{ $icon }}"
         label="{{ $label }}" />
-</x-card-footer>
+</x-fgx::card-footer>

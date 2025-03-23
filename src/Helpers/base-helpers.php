@@ -63,3 +63,18 @@ if (!function_exists('is_livewire')) {
         return request()->header('X-Livewire') ? true : false;
     }
 }
+
+if (!function_exists('content')) {
+    function content($content = null)
+    {
+        if (!empty($content)) {
+            if (is_string($content)) {
+                echo $content;
+            } elseif (is_array($content)) {
+                dump($content);
+            } else {
+                echo gettype($content);
+            }
+        }
+    }
+}
