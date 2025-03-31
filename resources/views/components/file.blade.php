@@ -5,437 +5,268 @@
     'info' => null,
     'class' => null,
     'atts' => [],
-    'multiple' => false,
-    'container_class' => null,
-    'container_atts' => [],
-    'model' => null,
-    'accept' => 'image/*,.pdf,.doc,.docx',
-    'maxSize' => 5,
-    'maxFiles' => 20,
     'previews' => [],
+    'maxSize' => max_file_size(),
+    'accept' => file_accept_attribute(),
+    'autoupload' => true,
 ])
 @php
-    $model = $model ?? ($attributes->get('wire:model.live') ?? $attributes->get('wire:model'));
-
-    $multiple = $multiple || $attributes->has('multiple');
-    if ($multiple) {
-        $atts['multiple'] = '';
-    }
-    $previews = is_previews($previews) ? $previews : media_previews([]);
-    $previewsArray = $previews->toArray();
-    $hasPreviews = $previews->count() > 0;
-    if (!$multiple && is_previews($previews)) {
-        //$previews = $previews->keepLast();
-    }
-    $mediaCount = is_previews($previews) ? $previews->count() : 0;
+    $model = $attributes->whereStartsWith('wire:model')->first();
+    $multiple = $attributes->has('multiple');
+    $single = !$multiple;
 @endphp
 <fgx:label :for="$model" :icon="$icon" :label="$label" />
-<div x-data="formDropZone({
+<div wire:cloak x-data="{
     model: '{{ $model }}',
-    accept: '{{ $accept }}',
-    maxSize: {{ $maxSize }},
-    maxFiles: {{ $maxFiles }},
+    files: [],
+    uploads: {},
+    isDragging: false,
+    currentUpload: null,
     multiple: @js($multiple),
-    previews: @js($previewsArray),
-})" id="form-drop-zone-{{ $model }}" class="form-drop-zone"
-    :class="{ 'multiple': @js($multiple) }" x-cloak>
-    <input
-        {{ $attributes->merge(
+    single: @js($single),
+    autoupload: @js($autoupload),
+    previews: @js($previews),
+    progress: 0,
+    uploading: false,
+    status: 'pending',
+    error: null,
+    init() {
+        if (this.previews.length) {
+            this.files = this.previews.map(item => Preview.make(item));
+        }
+        if (Array.isArray($refs.fileInput.files) && $refs.fileInput.files.length) {
+            this.addFiles(Array.from($refs.fileInput.files));
+        }
+    },
+    addFiles(newFiles) {
+        if (this.single) {
+            this.files = [Preview.make(newFiles[0])];
+        } else {
+            this.files = [...this.files, ...newFiles.map(item => Preview.make(item))];
+        }
+        if (this.autoupload) {
+            this.startUpload();
+        }
+    },
+    triggerFileInput() {
+        this.$refs.fileInput.click();
+    },
+    handleFileSelect(e) {
+        console.log('File selected', e);
+        this.addFiles(Array.from(e.target.files));
+        e.target.value = ''; // Reset input
+    },
+    handleDrop(event) {
+        this.isDragging = false;
+        const files = event.dataTransfer.files;
+        console.log(files);
+        this.addFiles(files);
+    },
+    pauseUpload() {
+        $wire.cancelUpload(this.model);
+        this.status = 'paused';
+    },
+    resumeUpload(file) {
+        this.startUpload();
+    },
+    cancelUpload() {
+        $wire.cancelUpload(this.model);
+    },
+    removeFromQueue(file) {
+        this.files = this.files.filter(f => f.id !== file.id);
+        if (file.url) URL.revokeObjectURL(file.url);
+    },
+    removeMedia(file) {
+        $wire.$dispatch('delete-media', {
+            property: this.model,
+            id: file.id
+        });
+    },
+    removeUpload(file) {
+        $wire.removeUpload(this.model, file.name, () => {
+            this.previews = this.previews.filter(item => item.name !== file.name);
+        });
+    },
+    deletePreview(file) {
+        if (file.isMedia()) {
+            this.removeMedia(file);
+        } else if (file.isTemporary()) {
+            this.removeUpload(file);
+        } else if (file.isLocal()) {
+            this.cancelUpload(file);
+        }
+    },
+    filesToUpload() {
+        try {
+            const filesToUpload = this.files.filter(item => item.isLocal()).map(item => item.file);
+            return this.multiple ? filesToUpload : filesToUpload[0];
+        } catch (e) {
+            return null;
+        }
+    },
+    async startUpload() {
+        if (this.uploading) {
+            return;
+        }
+        const filesToUpload = this.filesToUpload();
+        if (!filesToUpload || (this.multiple && !filesToUpload.length)) {
+            console.log('No files to upload');
+            return;
+        }
+        try {
+            this.uploading = true;
+            this.progress = 0;
+            this.error = null;
+            this.multiple ?
+                await $wire.uploadMultiple(
+                    this.model,
+                    filesToUpload,
+                    (uploadedFilenames) => {
+                        //success
+                        this.uploading = false;
+                        this.progress = 0;
+
+                    },
+                    () => {
+                        //error
+                        this.status = 'error';
+                        this.uploading = false;
+                        this.progress = 0;
+                        this.error = 'Upload failed';
+                    },
+                    (event) => {
+                        //progress
+                        this.progress = event.detail.progress;
+                    },
+                    () => {
+                        // Cancel callback
+                        this.status = 'cancelled';
+                        this.uploading = false;
+                        this.progress = 0;
+                    }) :
+                await $wire.upload(
+                    this.model,
+                    filesToUpload,
+                    (uploadedFilename) => {
+                        this.uploading = false;
+                        this.progress = 0;
+                    },
+                    (error) => {
+                        this.status = 'error';
+                        this.uploading = false;
+                        this.progress = 0;
+                        this.error = 'Upload failed';
+                    },
+                    (event) => {
+                        this.progress = event.detail.progress;
+                    },
+                    () => {
+                        // Cancel callback
+                        this.status = 'cancelled';
+                        this.uploading = false;
+                        this.progress = 0;
+                    }
+                );
+        } catch (error) {
+            this.status = 'error';
+            this.uploading = false;
+            this.progress = 0;
+            this.error = error.message;
+        }
+    }
+}">
+    <div x-on:drop.prevent="handleDrop" x-on:dragover.prevent="isDragging = true"
+        x-on:dragleave.prevent="isDragging = false" :class="isDragging && 'seek-drop-zone--dragging'"
+        {{ $attributes->whereDoesntStartWith('wire:model')->merge(
             array_merge(
                 [
-                    'type' => 'file',
                     'id' => $id,
-                    'accept' => $accept,
-                    'x-ref' => 'fileInput',
-                    'x-on:change' => 'handleFileSelect',
-                    'class' => css_classes(['hidden', $class => $class]),
+                    'class' => css_classes(['form-drop-zone', 'single' => $single, 'multiple' => $multiple, $class => $class]),
                 ],
                 $atts,
             ),
         ) }}>
-    <div x-bind="dragZone" x-ref="dragZone" class="previews-placeholder">
-        <div class="flex flex-col items-center justify-center p-4">
-            @icon('bi-cloud-upload', 'w-8 h-8 mb-1 text-gray-500 dark:text-gray-400')
-            <div class="text-xs text-center text-gray-600 dark:text-gray-400">
-                {{ __('Click or darg here to upload') }}
-            </div>
-            <div class="mt-1 text-xxs text-center text-gray-600 dark:text-gray-400">
-                {{ __('Max size: :max MB • Allowed: :accept', ['max' => $maxSize, 'accept' => $accept]) }}
-            </div>
-        </div>
-    </div>
-    <!-- Previews -->
-    <div class="previews-grid">
-        @if ($previews && $previews->isNotEmpty())
-            @foreach ($previews as $preview)
-                <div id="previews-item-{{ $preview->id }}" class="previews-item"
-                    :class="{ 'abosolute inset-0 z-20': @js(!$multiple) }">
-                    @if ($preview->type === 'image')
-                        <img src="{{ $preview->url }}">
-                    @elseif($preview->type === 'video')
-                        <video controls>
-                            <source src="{{ $preview->url }}" type="{{ $preview->mime_type }}">
-                            {{ __('Your browser does not support the video tag.') }}
-                        </video>
-                    @else
-                        <div class="flex items-center justify-center w-full h-full">
-                            <div class="text-center">
-                                <i class="icon w-8 h-8 {{ $preview->icon }}"></i>
-                                <div class="text-xs mt-2 px-1">
-                                    <div class="font-semibold truncate">{{ $preview->name }}</div>
-                                    <div class="mt-1">{{ $preview->mime_type }}</div>
-                                    <div class="mt-1">{{ $preview->humanReadableSize }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-                    <button type="button" class="previews-item-delete"
-                        x-on:click="deletePreview(@js($preview))">
-                        <i class="icon bi-trash-fill"></i>
-                    </button>
-                </div>
-            @endforeach
-        @endif
-        <!-- Queue -->
-        <template x-for="(file, index) in queue" :key="file.id">
-            <div class="previews-item">
-                <template x-if="file.preview">
-                    <img :src="file.preview">
-                </template>
-                <template x-if="!file.preview">
-                    <div class="flex items-center justify-center w-full h-full">
+
+        <input x-ref="fileInput" type="file" class="hidden" :multiple="@js($multiple)"
+            accept="{{ $accept }}" x-on:change="handleFileSelect">
+
+        <div :class="{ 'previews-grid': files.length > 0, 'cursor-pointer': files.length === 0 }">
+            <template x-for="(file, index) in files" :key="index">
+                <div class="previews-item"
+                    :class="{
+                        'border-primary': file.model_type === 'media',
+                        'border-green': file
+                            .model_type === 'temporary',
+                        'border-yellow': file.model_type === 'local'
+                    }">
+                    <img x-show="file.isImage()" :src="file.url" class="previews-item__image">
+                    <div x-show="!file.isImage()" class="flex items-center justify-center w-full h-full">
                         <div class="text-center">
-                            <i class="icon bi-file"></i>
+                            <i class="icon w-8 h-8" :class="file.icon"></i>
                             <div class="text-xs mt-2">
                                 <div x-text="file.name" class="font-semibold"></div>
-                                <div x-text="fileStatus(file)" class="mt-1"></div>
-                                <div x-text="formatSize(file.size)" class="mt-1"></div>
+                                <div x-text="file.mime_type" class="mt-1"></div>
+                                <div x-text="file.size" class="mt-1"></div>
                             </div>
                         </div>
                     </div>
-                </template>
-                <!-- Progress Bar -->
-                <div class="progress absolute w-3/4 top-1/2 -translate-y-1/5 left-1/2 -translate-x-1/2"
-                    x-show="file.progress > 0">
-                    <div class="progress-bar" :style="'width: ' + file.progress + '%'" x-text="file.progress+'%'"></div>
+                    <button type="button" class="previews-item-delete" x-on:click="deletePreview(file)">
+                        <i class="icon bi-trash-fill"></i>
+                    </button>
                 </div>
-                <div class="previews-item-toolbar">
-                    <template x-if="file.status === 'pending'">
-                        <button type="button" class="toolbar-button upload" x-on:click="startUpload(file)">
-                            <i class="icon bi-cloud-upload-fill"></i>
-                        </button>
-                    </template>
+            </template>
 
-                    <template x-if="file.status === 'uploading'">
-                        <button type="button" class="toolbar-button pause" x-on:click="pauseUpload(file)">
-                            <i class="icon pause-fill"></i>
-                        </button>
-                    </template>
-
-                    <template x-if="file.status === 'paused'">
-                        <button type="button" class="toolbar-button resume" x-on:click="resumeUpload(file)">
-                            <i class="icon play-fill"></i>
-                        </button>
-                    </template>
-                </div>
-                <button type="button" class="previews-item-delete" x-on:click="cancelUpload(file)">
-                    <i class="icon bi-trash-fill"></i>
-                </button>
-            </div>
-        </template>
-        <div x-bind="appender" x-ref="appender" class="previews-appender">
-            <div class="text-center">
-                <i class="icon bi-cloud-upload w-8 h-8 text-gray-500 dark:text-gray-400"></i>
-                <div class="mt-1 text-xs text-center text-gray-500 dark:text-gray-400">
-                    {{ __('Click or drop to upload') }}
+            <!-- Placeholder/Appender -->
+            <div x-show="multiple || files.length === 0"
+                :class="{ 'previews-placeholder': files.length === 0, 'previews-appender': multiple && files.length > 0 }"
+                x-on:click="triggerFileInput">
+                <div class="text-center p-2"
+                    :class="{ 'max-w-32 max-h-32': single || (multiple && files.length > 0) }">
+                    <i class="icon bi-cloud-upload w-10 h-10 mb-1 text-gray-500 dark:text-gray-400"></i>
+                    <div class="text-xs text-center text-gray-600 dark:text-gray-400">
+                        {{ __('Click or darg here to upload') }}
+                    </div>
+                    <div class="mt-1 text-xs text-center text-gray-600 dark:text-gray-400">
+                        {{ __('Max size: :max MB • Allowed: :accept', ['max' => size_formatted($maxSize), 'accept' => $accept]) }}
+                    </div>
                 </div>
             </div>
         </div>
+        <button x-show="single && files.length > 0" type="button"
+            class="text-sm absolute z-3 w-8 h-8 flex items-center justify-center top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 rtl:translate-x-1/2 rounded-full text-white bg-primary/80 hover:bg-primary"
+            x-on:click="triggerFileInput">
+            <i class="icon bi-pencil-square"></i>
+        </button>
     </div>
-    <button x-bind="editButton" x-ref="editButton" type="button"
-        class="z-30 flex items-center justify-center text-white bg-primary/70 hover:bg-primary text-xs w-8 h-8 rounded-full absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2">
-        <i class="icon bi-pencil-square"></i>
-    </button>
+    <!-- Toolbar -->
+    <div class="flex-space-2">
+        <div class="progress grow" x-show="uploading">
+            <div class="progress-bar" :style="'width: ' + progress + '%'" x-text="progress+'%'"></div>
+        </div>
+        <div class="flex-space-1">
+            <template x-if="!uploading && !autoupload && filesToUpload().length">
+                <button type="button" class="toolbar-button upload" x-on:click="startUpload()">
+                    <i class="icon bi-cloud-upload-fill"></i>
+                </button>
+            </template>
+
+            <template x-if="uploading">
+                <button type="button" class="toolbar-button pause" x-on:click="pauseUpload()">
+                    <i class="icon bi-pause-fill"></i>
+                </button>
+            </template>
+
+            <template x-if="!uploading && status === 'pauesd'">
+                <button type="button" class="toolbar-button resume" x-on:click="resumeUpload()">
+                    <i class="icon play-fill"></i>
+                </button>
+            </template>
+        </div>
+    </div>
+    <div x-show="error" class="form-error" x-text="error"></div>
 </div>
+<fgx:info :id="$model" />
 <fgx:error :id="$model" />
-@script
-    <script>
-        Alpine.data('formDropZone', (config) => ({
-            multiple: false,
-            hasPreviews: false,
-            queue: [],
-            currentUpload: null,
-            dragover: false,
-            container: null,
-            listeners: [],
-            dragZone: {
-                ['@dragover.prevent']() {
-                    this.dragover = true;
-                },
-                ['@dragleave.prevent']() {
-                    this.dragover = false;
-                },
-                ['@click']() {
-                    this.$refs.fileInput.click();
-                },
-            },
-            appender: {
-                ['@click']() {
-                    this.$refs.fileInput.click();
-                },
-            },
-            editButton: {
-                ['@click']() {
-                    this.$refs.fileInput.click();
-                },
-            },
-            handleMediaDeleted() {
-                $wire.on('media-deleted', (event) => {
-                    const id = event[0].id;
-                    $wire.$refresh();
-                    const element = document.querySelector(`#previews-item-${id}`);
-                    if (element) {
-                        console.log(element);
-                        element.remove();
-                    }
-                });
-            },
-            handleFileSelect(e) {
-                this.addFiles(Array.from(e.target.files));
-                e.target.value = ''; // Reset input
-            },
-
-            handleDrop(e) {
-                this.dragover = false;
-                this.addFiles(Array.from(e.dataTransfer.files));
-            },
-
-            addFiles(files) {
-                let i = 0;
-                const remainingSlots = config.maxFiles - this.queue.length;
-                const filesToAdd = files.slice(0, remainingSlots);
-
-                filesToAdd.forEach(file => {
-                    if (!this.validateFile(file)) return;
-
-                    this.queue.push({
-                        index: i,
-                        id: Math.random().toString(36).substr(2, 9),
-                        file,
-                        name: file.name,
-                        size: file.size,
-                        preview: file.type.startsWith('image/') ? URL
-                            .createObjectURL(file) : null,
-                        progress: 0,
-                        status: 'pending',
-                        error: null
-                    });
-                    i++;
-                });
-                this.processNext();
-            },
-
-            validateFile(file) {
-                return true;
-                if (file.size > config.maxSize * 1024 * 1024) {
-                    alert(`File ${file.name} exceeds maximum size of ${config.maxSize}MB`);
-                    return false;
-                }
-
-                const acceptedTypes = config.accept.split(',');
-                if (!acceptedTypes.some(type => {
-                        if (type.startsWith('.')) {
-                            return file.name.toLowerCase().endsWith(type);
-                        }
-                        return file.type.match(type.replace('/*', '/.*'));
-                    })) {
-                    alert(`File ${file.name} is not an allowed type`);
-                    return false;
-                }
-
-                return true;
-            },
-
-            async startUpload(file) {
-                if (this.currentUpload) return;
-
-                file.status = 'uploading';
-                this.currentUpload = file;
-                const t = this;
-                try {
-                    await $wire.upload(
-                        this.multiple ? `${config.model}.${file.index}` : config.model,
-                        file.file,
-                        (uploadedFilename) => {
-                            // Upload success
-                            file.status = 'completed';
-                            this.removeFromQueue(file);
-                            this.currentUpload = null;
-                            this.processNext();
-                            this.initHasPreviews();
-                            //$wire.$refresh();
-                        },
-                        (error) => {
-                            // Upload error
-                            file.status = 'error';
-                            file.error = error;
-                            this.currentUpload = null;
-                        },
-                        (event) => {
-                            // Progress update
-                            file.progress = event.detail.progress;
-                        },
-                        () => {
-                            // Cancel callback
-                            file.status = 'cancelled';
-                            this.currentUpload = null;
-                        }
-                    );
-                } catch (error) {
-                    file.status = 'error';
-                    file.error = error.message;
-                    this.currentUpload = null;
-                }
-            },
-
-            pauseUpload(file) {
-                if (file.status === 'uploading') {
-                    file.status = 'paused';
-                    $wire.cancelUpload(config.model);
-                    this.currentUpload = null;
-                }
-            },
-
-            resumeUpload(file) {
-                if (file.status === 'paused') {
-                    this.startUpload(file);
-                }
-            },
-
-            cancelUpload(file) {
-                if (file.status === 'uploading') {
-                    $wire.cancelUpload(config.model);
-                }
-                this.removeFromQueue(file);
-                this.initHasPreviews();
-            },
-
-            removeFromQueue(file) {
-                this.queue = this.queue.filter(f => f.id !== file.id);
-                if (file.preview) URL.revokeObjectURL(file.preview);
-            },
-
-            processNext() {
-                const nextFile = this.queue.find(f => f.status === 'pending');
-                if (nextFile) this.startUpload(nextFile);
-            },
-
-            formatSize(bytes) {
-                if (bytes === 0) return '0 B';
-                const k = 1024;
-                const sizes = ['B', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-            },
-
-            fileStatus(file) {
-                if (file.error) return `Error: ${file.error}`;
-                if (file.status === 'uploading') return `Uploading... ${file.progress}%`;
-                return file.status.charAt(0).toUpperCase() + file.status.slice(1);
-            },
-            deletePreview(item) {
-                switch (item.model_type) {
-                    case 'Media':
-                        $wire.$dispatch('delete-media', {
-                            property: config.model,
-                            id: item.id
-                        });
-                        break;
-                    case 'TemporaryUploadedFile':
-                        $wire.removeUpload(config.model, item.name, () => {
-                            //$wire.$refresh();
-                            //this.initHasPreviews();
-                        });
-                        break;
-                }
-
-
-            },
-            getPreviews() {
-                const container = document.getElementById(`form-drop-zone-${config.model}`);
-                return container ? container.querySelectorAll('.previews-item') : [];
-            },
-            initHasPreviews() {
-                this.multiple = config.multiple;
-                const container = document.getElementById(`form-drop-zone-${config.model}`);
-                const previews = container ? container.querySelectorAll('.previews-item') : [];
-                this.hasPreviews = previews.length > 0;
-                if (this.multiple) {
-                    this.$refs.editButton.classList.add('hidden');
-                    if (this.hasPreviews) {
-                        this.$refs.dragZone.classList.add('hidden');
-                        this.$refs.appender.classList.remove('hidden');
-                    } else {
-                        this.$refs.dragZone.classList.remove('hidden');
-                        this.$refs.appender.classList.add('hidden');
-                    }
-                } else {
-                    this.$refs.appender.classList.add('hidden');
-                    if (this.hasPreviews) {
-                        this.$refs.dragZone.classList.add('hidden');
-                        this.$refs.editButton.classList.remove('hidden');
-                    } else {
-                        this.$refs.editButton.classList.add('hidden');
-                        this.$refs.dragZone.classList.remove('hidden');
-
-                    }
-                }
-            },
-            getHasPreviews() {
-                return this.getPreviews().length > 0;
-            },
-            showAppender() {
-                return this.hasPreviews && this.multiple;
-            },
-            showDragZone() {
-                return !this.hasPreviews;
-            },
-            showEdit() {
-                return this.hasPreviews && !this.multiple;
-            },
-            initAppenders() {
-
-            },
-            init() {
-                this.multiple = config.multiple;
-                this.initHasPreviews();
-                this.listeners.push(
-                    Livewire.on('media-deleted', (ids) => {
-                        try {
-                            let elements = 0;
-                            ids.forEach(id => {
-                                const element = document.querySelector(`#previews-item-${id}`);
-                                if (element) {
-                                    elements++;
-                                    element.remove();
-                                }
-                            });
-                            if (elements > 0) {
-                                $wire.$refresh();
-                            }
-                            this.initHasPreviews();
-                        } catch (error) {
-                            console.log('error', error);
-                            //console.error(error);
-                        }
-                    }),
-                );
-            },
-            destroy() {
-                this.listeners.forEach((listener) => {
-                    listener();
-                });
-            }
-        }));
-    </script>
-@endscript
+@pushOnce('scripts')
+    @vite(['resources/js/preview.js'])
+@endPushOnce
