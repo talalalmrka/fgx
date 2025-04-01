@@ -280,8 +280,13 @@ class Preview
     }
     public static function isUploadedFiles($media)
     {
-        return is_array($media) &&
-            collect($media)->every(fn($item) => $item instanceof UploadedFile);
+        return is_array($media) && collect($media)->every(fn($item) => $item instanceof UploadedFile);
+    }
+    public function isMedia() {
+        return $this->model_type === 'media';
+    }
+    public function isTemporary() {
+        return $this->model_type === 'temporary';
     }
     public function toArray()
     {

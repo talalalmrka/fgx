@@ -1,4 +1,5 @@
 <?php
+
 use Fgx\Preview;
 use Fgx\Previews;
 use Illuminate\Http\UploadedFile;
@@ -98,23 +99,26 @@ if (!function_exists('preview')) {
 if (!function_exists('previews')) {
     function previews(...$values)
     {
-        return Previews::create($values);
+        return Previews::create(...$values);
     }
 }
 
-if(!function_exists('is_preview')){
-    function is_preview($data){
+if (!function_exists('is_preview')) {
+    function is_preview($data)
+    {
         return $data instanceof Preview;
     }
 }
-if(!function_exists('is_previews')){
-    function is_previews($data){
+if (!function_exists('is_previews')) {
+    function is_previews($data)
+    {
         return $data instanceof Previews;
     }
 }
 
 if (!function_exists('livewire_tmp_url')) {
-    function livewire_tmp_url() {
+    function livewire_tmp_url()
+    {
         $disk = config('livewire.temporary_file_upload.disk');
         $directory = config('livewire.temporary_file_upload.directory') ?? 'livewire-tmp';
         $diskUrl = config("filesystems.disks.{$disk}.url");
@@ -123,7 +127,8 @@ if (!function_exists('livewire_tmp_url')) {
 }
 
 if (!function_exists('max_file_size')) {
-    function max_file_size($size = null) {
+    function max_file_size($size = null)
+    {
         $limits = [
             $size,
             php_max_file_size(),
@@ -135,7 +140,8 @@ if (!function_exists('max_file_size')) {
 }
 
 if (!function_exists('php_max_file_size')) {
-    function php_max_file_size() {
+    function php_max_file_size()
+    {
         $uploadMax = ini_get('upload_max_filesize');
         $postMax = ini_get('post_max_size');
         $uploadMaxBytes = convert_to_bytes($uploadMax);
@@ -145,7 +151,8 @@ if (!function_exists('php_max_file_size')) {
 }
 
 if (!function_exists('media_library_max_file_size')) {
-    function media_library_max_file_size() {
+    function media_library_max_file_size()
+    {
         if (!class_exists(\Spatie\MediaLibrary\MediaLibraryServiceProvider::class)) {
             return null;
         }
@@ -155,7 +162,8 @@ if (!function_exists('media_library_max_file_size')) {
 }
 
 if (!function_exists('livewire_max_file_size')) {
-    function livewire_max_file_size() {
+    function livewire_max_file_size()
+    {
         if (!class_exists(\Livewire\LivewireServiceProvider::class)) {
             return null;
         }
@@ -174,18 +182,23 @@ if (!function_exists('livewire_max_file_size')) {
 }
 
 if (!function_exists('convert_to_bytes')) {
-    function convert_to_bytes($value) {
+    function convert_to_bytes($value)
+    {
         if (is_numeric($value)) {
             return (int) $value;
         }
         $unit = strtolower(substr($value, -1));
         $number = (float) substr($value, 0, -1);
-    
+
         switch ($unit) {
-            case 'g': return $number * 1024 * 1024 * 1024;
-            case 'm': return $number * 1024 * 1024;
-            case 'k': return $number * 1024;
-            default: return $number;
+            case 'g':
+                return $number * 1024 * 1024 * 1024;
+            case 'm':
+                return $number * 1024 * 1024;
+            case 'k':
+                return $number * 1024;
+            default:
+                return $number;
         }
     }
 }
@@ -265,7 +278,7 @@ if (!function_exists('file_accept_extensions')) {
     function file_accept_extensions()
     {
         $types = file_accept_types();
-        
+
         if (empty($types)) {
             return null;
         }
@@ -291,12 +304,12 @@ if (!function_exists('file_accept_attribute')) {
     function file_accept_attribute()
     {
         $extensions = file_accept_extensions();
-        
+
         if (empty($extensions)) {
             return '';
         }
 
-        return implode(',', array_map(function($ext) {
+        return implode(',', array_map(function ($ext) {
             return ".{$ext}";
         }, $extensions));
     }

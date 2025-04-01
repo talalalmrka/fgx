@@ -17,27 +17,27 @@ class Previews extends Collection
     }
 
     /**
-     * Override push to ensure items are converted to MediaPreview
+     * Override push to ensure items are converted to Preview
      */
     public function push(...$values)
     {
         foreach ($values as $value) {
-            if ($value instanceof MediaPreview) {
+            if ($value instanceof Preview) {
                 parent::push($value);
             } elseif (
                 $value instanceof Media ||
                 $value instanceof TemporaryUploadedFile ||
                 $value instanceof UploadedFile
             ) {
-                parent::push(MediaPreview::make($value));
+                parent::push(Preview::make($value));
             } elseif (
                 $value instanceof Collection ||
                 $value instanceof MediaCollection ||
-                MediaPreview::isTemporaryFiles($value) ||
-                MediaPreview::isUploadedFiles($value)
+                Preview::isTemporaryFiles($value) ||
+                Preview::isUploadedFiles($value)
             ) {
                 foreach ($value as $item) {
-                    parent::push(MediaPreview::make($item));
+                    parent::push(Preview::make($item));
                 }
             }
         }
