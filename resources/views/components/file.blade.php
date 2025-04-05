@@ -12,6 +12,9 @@
 ])
 @php
     $model = $attributes->whereStartsWith('wire:model')->first();
+    if (is_previews($previews)) {
+        $previews = $previews->toArray();
+    }
     $hasPreviews = !empty($previews);
     $multiple = $attributes->has('multiple');
     $single = !$multiple;
@@ -42,14 +45,14 @@
         this.$refs.fileInput.click();
     },
     handleFileSelect(e) {
-        if(Array.isArray(e.target.files) && e.target.files.length){
+        if (Array.isArray(e.target.files) && e.target.files.length) {
             if (this.single) {
                 this.files = [Preview.make(e.target.files[0])];
             } else {
                 this.files = e.target.files.map(item => Preview.make(item));
             }
         }
-        
+
     },
     handleDrop(event) {
         this.isDragging = false;
@@ -72,15 +75,12 @@
             this.cancelUpload(file);
         }
     },
-    deleteFile(id){
+    deleteFile(id) {
         this.files = this.files.filter(item => item.id !== id);
     }
-}"
-x-on:livewire-upload-start="uploading = true"
-x-on:livewire-upload-finish="uploading = false"
-x-on:livewire-upload-cancel="uploading = false"
-x-on:livewire-upload-error="uploading = false"
-x-on:livewire-upload-progress="progress = $event.detail.progress">
+}" x-on:livewire-upload-start="uploading = true"
+    x-on:livewire-upload-finish="uploading = false" x-on:livewire-upload-cancel="uploading = false"
+    x-on:livewire-upload-error="uploading = false" x-on:livewire-upload-progress="progress = $event.detail.progress">
     <div x-on:drop.prevent="handleDrop" x-on:dragover.prevent="isDragging = true"
         x-on:dragleave.prevent="isDragging = false" :class="isDragging && 'seek-drop-zone--dragging'"
         {{ $attributes->whereDoesntStartWith('wire:model')->merge(
@@ -97,7 +97,11 @@ x-on:livewire-upload-progress="progress = $event.detail.progress">
             accept="{{ $accept }}" x-on:change="handleFileSelect" {{ $multiple ? 'multiple' : '' }}>
 
         <div
-            :class="{ 'previews-grid': files.length > 0 || @js($hasPreviews), 'cursor-pointer': files.length === 0 && @js(!$hasPreviews)}">
+            :class="{
+                'previews-grid': files.length > 0 || @js($hasPreviews),
+                'cursor-pointer': files.length === 0 &&
+                    @js(!$hasPreviews)
+            }">
             @foreach ($previews as $preview)
                 @php
                     $previewModel = data_get($preview, 'model_type');
@@ -123,7 +127,8 @@ x-on:livewire-upload-progress="progress = $event.detail.progress">
                             </div>
                         </div>
                     @endif
-                    <button type="button" class="previews-item-delete" x-on:click="deletePreview({model_type: @js($previewModel), id: @js($previewId), name: @js($previewName)})">
+                    <button type="button" class="previews-item-delete"
+                        x-on:click="deletePreview({model_type: @js($previewModel), id: @js($previewId), name: @js($previewName)})">
                         <i class="icon bi-trash-fill"></i>
                     </button>
                 </div>
@@ -150,8 +155,11 @@ x-on:livewire-upload-progress="progress = $event.detail.progress">
 
             <!-- Placeholder/Appender -->
             <div x-show="multiple || (files.length === 0 && @js(!$hasPreviews))"
-                :class="{ 'previews-placeholder': files.length === 0 && @js(!$hasPreviews), 'previews-appender': multiple &&
-                        (files.length > 0 || @js($hasPreviews)) }"
+                :class="{
+                    'previews-placeholder': files.length === 0 && @js(!$hasPreviews),
+                    'previews-appender': multiple &&
+                        (files.length > 0 || @js($hasPreviews))
+                }"
                 x-on:click="triggerFileInput">
                 <div class="text-center p-2"
                     :class="{ 'max-w-32 max-h-32': single || (multiple && (files.length > 0 || @js($hasPreviews))) }">
@@ -177,7 +185,8 @@ x-on:livewire-upload-progress="progress = $event.detail.progress">
             <div class="progress-bar" :style="'width: ' + progress + '%'" x-text="progress+'%'"></div>
         </div>
         <div class="flex-space-1">
-            <button type="button" class="toolbar-button cancel" x-on:click="$wire.cancelUpload('{{ $model }}')">
+            <button type="button" class="toolbar-button cancel"
+                x-on:click="$wire.cancelUpload('{{ $model }}')">
                 <i class="icon bi-x"></i>
             </button>
         </div>
