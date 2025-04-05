@@ -37,7 +37,7 @@
     ),
 ) !!}>
     @foreach ($options as $option)
-        <option value="{{ data_get($option, 'value') }}">{{ data_get($option, 'label') }}</option>
+        <option value="{{ data_get($option, 'value') }}">{!! data_get($option, 'label') !!}</option>
     @endforeach
 </select>
 <x-fgx::info :id="$id" :info="$info" />
