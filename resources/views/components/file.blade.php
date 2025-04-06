@@ -173,7 +173,7 @@
                 </div>
             </div>
         </div>
-        <button x-show="single && files.length > 0 && previews.length > 0" type="button"
+        <button x-show="single && (files.length > 0 || @js($hasPreviews))" type="button"
             class="text-sm absolute z-3 w-8 h-8 flex items-center justify-center top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 rtl:translate-x-1/2 rounded-full text-white bg-primary/80 hover:bg-primary"
             x-on:click="triggerFileInput">
             <i class="icon bi-pencil-square"></i>
