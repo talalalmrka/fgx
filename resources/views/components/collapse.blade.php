@@ -17,7 +17,7 @@
 }" class="card" x-cloak>
     @if (isset($header))
         <div class="card-header flex-space-2" :class="{ 'border-b-0': !open }">
-            <div class="card-title grow text-primary flex-space-2 py-1">
+            <div class="card-title grow flex-space-2 py-1">
                 {!! $header !!}
             </div>
             <button type="button" class="flex items-center" x-on:click.prevent="toggle">
