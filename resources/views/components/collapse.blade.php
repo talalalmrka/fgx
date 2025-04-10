@@ -2,6 +2,7 @@
     'id' => uniqid('collsapse-'),
     'title' => null,
     'icon' => null,
+    'class' => '',
 ])
 
 <div x-data="{
@@ -14,7 +15,7 @@
     init() {
         this.open = localStorage.getItem(this.collapseId) === 'true';
     }
-}" class="card" x-cloak>
+}" class="card {{ $class }}" x-cloak>
     @if (isset($header))
         <div class="card-header flex-space-2" :class="{ 'border-b-0': !open }">
             <div class="card-title grow flex-space-2 py-1">
