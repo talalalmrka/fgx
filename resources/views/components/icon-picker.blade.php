@@ -18,22 +18,20 @@
     'group_atts' => [],
     'dropdown_class' => null,
     'dropdown_atts' => [],
+    'size' => null,
 ])
 @php
     $model = $attributes->whereStartsWith('wire:model')->first();
 @endphp
 <x-fgx::label :for="$id" :icon="$icon" :required="$required" :label="$label" />
-<div wire:ignore x-cloak x-data="{
+<div x-cloak x-data="{
     open: false,
-    selectedIcon: '{{ $value }}',
+    selectedIcon: '',
     searchTerm: '',
     model: @js($model),
     icons: @js(config('fgx.icons', [])),
     page: 1,
     perPage: 25,
-    get currentIcon() {
-        return this.selectedIcon;
-    },
     get filteredIcons() {
         return this.icons.filter(icon => icon.toLowerCase().includes(this.searchTerm.toLowerCase()));
     },
@@ -42,9 +40,6 @@
     },
     get pages() {
         return Math.ceil(this.filteredIcons.length / this.perPage);
-    },
-    get selectedFullIcon() {
-        return this.iconClass(this.selectedIcon);
     },
     selectIcon(icon) {
         this.selectedIcon = icon;
@@ -83,8 +78,12 @@
     },
     init() {
         this.$nextTick(() => {
-            this.selectedIcon = this.$refs.input.value;
-            console.log(this.selectedIcon);
+            //console.log('value', this.$refs.input.value);
+            if (this.icons.includes(this.$refs.input.value)) {
+                this.selectedIcon = this.$refs.input.value;
+                this.page = Math.ceil((this.icons.indexOf(this.selectedIcon) + 1) / this.perPage);
+            }
+            //console.log(this.selectedIcon);
         });
 
         $watch('searchTerm', (value, oldValue) => {
@@ -95,15 +94,16 @@
     }
 }"
     {{ attributes($container_atts)->merge([
-        'class' => css_classes([
-            'dropdown inited overflow-visible',
-            $container_class => $container_class,
-            'x-on:click.away' => 'open = false',
-        ]),
-    ]) }}>
-    <div class="input-group {{ $group_class }}">
-        <button wire:ignore type="button" class="btn btn-primary" x-on:click="open = !open">
-            <i class="icon" :class="currentIcon" :title="currentIcon"></i>
+        'class' => css_classes(['dropdown inited overflow-visible w-full', $container_class => $container_class]),
+    ]) }}
+    x-on:click.away="open = false">
+    <div class="input-group w-full {{ $size }} {{ $group_class }}">
+        <button type="button"
+            class="text-bg-light bg-gray-300 border-gray-300 dark:bg-gray-600 dark:border-gray-600 dark:text-bg-dark w-10"
+            x-on:click="open = !open">
+            <template x-if="selectedIcon !== ''">
+                <i class="icon" :class="selectedIcon" :title="selectedIcon"></i>
+            </template>
         </button>
         <input
             {{ $attributes->merge(
@@ -112,16 +112,17 @@
                         'x-ref' => 'input',
                         'class' => css_classes(['form-control', $class => $class]),
                         'x-on:keyup' => 'inputChanged',
+                        'x-on:change' => 'inputChanged',
                     ],
                     $atts,
                 ),
             ) }}>
     </div>
-
     <!-- Dropdown -->
-    <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95"
-        x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75"
-        x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+    <div x-show="open" x-transition:enter="transition ease-out duration-100"
+        x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
         class="absolute z-10 mt-2 w-auto bg-white dark:bg-gray-800 rounded-md shadow-sm border border-gray-200 dark:border-gray-600 {{ $dropdown_class }}">
         <div class="bg-gray-100 dark:bg-gray-700 p-1">
             <div class="form-control-container">

@@ -1,10 +1,9 @@
 @props([
     'id' => uniqid('input-'),
     'type' => 'text',
-    'name' => null,
     'icon' => null,
     'label' => null,
-    'value' => null,
+    //'value' => null,
     'placeholder' => null,
     'autofocus' => false,
     'autocomplete' => null,
@@ -54,7 +53,7 @@
         array_merge($atts, [
             'id' => $id,
             'type' => $type,
-            'value' => $value,
+            //'value' => $value,
             'placeholder' => $placeholder,
             'autofocus' => $autofocus ? '' : null,
             'autocomplete' => $autocomplete,

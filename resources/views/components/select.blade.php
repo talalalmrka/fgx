@@ -1,6 +1,6 @@
 @props([
     'id' => uniqid('select-'),
-    'name' => null,
+    //'name' => null,
     'icon' => null,
     'label' => null,
     'value' => null,
