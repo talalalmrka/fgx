@@ -66,7 +66,7 @@
             <option value="{{ data_get($option, 'value') }}">{!! data_get($option, 'label') !!}</option>
         @endforeach
     </select>
-    @if ($endIcon || $endView || $type == 'password')
+    @if ($endIcon || $endView)
         <span class="end-icon">
             @icon($endIcon)
             @if (!empty($endView))
