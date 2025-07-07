@@ -3,7 +3,6 @@
     'type' => 'text',
     'icon' => null,
     'label' => null,
-    //'value' => null,
     'placeholder' => null,
     'autofocus' => false,
     'autocomplete' => null,
@@ -53,7 +52,6 @@
         array_merge($atts, [
             'id' => $id,
             'type' => $type,
-            //'value' => $value,
             'placeholder' => $placeholder,
             'autofocus' => $autofocus ? '' : null,
             'autocomplete' => $autocomplete,
