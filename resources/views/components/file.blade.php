@@ -116,11 +116,11 @@
                     @if (data_get($preview, 'type') === 'image')
                         <img src="{{ data_get($preview, 'url') }}" class="previews-item__image">
                     @else
-                        <div class="flex items-center justify-center w-full h-full">
+                        <div class="relative flex items-center justify-center w-full h-full">
                             <div class="text-center">
                                 <i class="icon w-8 h-8 {{ data_get($preview, 'icon') }}"></i>
                                 <div class="text-xs mt-2">
-                                    <div class="font-semibold">{{ data_get($preview, 'name') }}</div>
+                                    <div class="font-semibold w-full">{{ data_get($preview, 'name') }}</div>
                                     <div class="mt-1">{{ data_get($preview, 'mime_type') }}</div>
                                     <div class="mt-1">{{ data_get($preview, 'size') }}</div>
                                 </div>
